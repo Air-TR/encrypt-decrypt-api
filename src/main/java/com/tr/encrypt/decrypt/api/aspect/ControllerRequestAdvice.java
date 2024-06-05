@@ -3,7 +3,6 @@ package com.tr.encrypt.decrypt.api.aspect;
 import com.alibaba.fastjson.JSONObject;
 import com.tr.encrypt.decrypt.api.aspect.annotation.EncryptApi;
 import com.tr.encrypt.decrypt.api.aspect.annotation.EncryptRequest;
-import com.tr.encrypt.decrypt.api.constant.AESConst;
 import com.tr.encrypt.decrypt.api.constant.RedisKey;
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 import com.tr.encrypt.decrypt.api.kit.AESKit;
@@ -61,7 +60,7 @@ public class ControllerRequestAdvice implements RequestBodyAdvice {
         }
 
         // 验证签名（用于重放攻击校验）
-        String[] signs = AESKit.decrypt(encrypts[2], AESConst.KEY).split("\\.");
+        String[] signs = AESKit.decrypt(encrypts[2]).split("\\.");
         if (signs.length != 2) {
             throw new BusinessException("非法参数");
         }
@@ -80,7 +79,7 @@ public class ControllerRequestAdvice implements RequestBodyAdvice {
         stringRedisTemplate.opsForValue().set(RedisKey.REQUEST_SIGN + signs[1], signs[1], 10, TimeUnit.MINUTES);
 
         // 实际参数（解密后）
-        String decryptParam = AESKit.decrypt(encrypts[0], AESConst.KEY);
+        String decryptParam = AESKit.decrypt(encrypts[0]);
 
         // 返回 HttpInputMessage 匿名对象
         return new HttpInputMessage() {

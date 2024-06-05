@@ -2,7 +2,6 @@ package com.tr.encrypt.decrypt.api.kit;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.tr.encrypt.decrypt.api.constant.AESConst;
 import com.tr.encrypt.decrypt.api.constant.RSAConst;
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 
@@ -11,11 +10,14 @@ import com.tr.encrypt.decrypt.api.exception.BusinessException;
  */
 public class EncryptDataKit {
 
-    public static JSONObject encryptResponseData(Object data) {
+    public static Object encryptResponseData(Object data) {
         try {
+            if (data instanceof String) {
+                return AESKit.encrypt((String) data);
+            }
             JSONObject json = new JSONObject();
             String jsonString = JSON.toJSONString(data);
-            String encryptData = AESKit.encrypt(jsonString, AESConst.KEY);
+            String encryptData = AESKit.encrypt(jsonString);
             json.put("sign", MD5Kit.encrypt(encryptData));
             json.put("encryptData", encryptData);
             return json;
@@ -31,7 +33,7 @@ public class EncryptDataKit {
             if (StringKit.isBlank(md5) || !md5.equals(MD5Kit.encrypt(encryptData))) {
                 throw new BusinessException("非法响应数据！");
             }
-            return AESKit.decrypt(encryptData, AESConst.KEY);
+            return AESKit.decrypt(encryptData);
         } catch (Exception e) {
             throw new BusinessException(e instanceof BusinessException ? e.getMessage() : "Response 解密错误");
         }

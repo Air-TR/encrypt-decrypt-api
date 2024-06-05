@@ -54,7 +54,7 @@ public class EncryptFilter implements Filter {
 
 //        JSONObject signJson = JSON.parseObject(signJsonStr);
         String request_uri = URLDecoder.decode(request.getRequestURI().substring(request.getContextPath().length()),request.getCharacterEncoding());
-        request.setRequestURI("/encrypt/list");
+//        request.setRequestURI("/encrypt/list");
 
         // get 请求
         String encryptParam = request.getParameter("encryptParam");

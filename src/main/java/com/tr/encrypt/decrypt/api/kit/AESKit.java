@@ -1,7 +1,5 @@
 package com.tr.encrypt.decrypt.api.kit;
 
-import com.alibaba.fastjson.JSONObject;
-import com.tr.encrypt.decrypt.api.constant.AESConst;
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 
 import javax.crypto.Cipher;
@@ -14,15 +12,29 @@ import java.util.Base64;
 public class AESKit {
 
     private static final String AES_ALGORITHM = "AES/ECB/PKCS5Padding";
+    public static final String KEY = "AesKey.123456789"; // 必须是 16/24/32 位，分别对应 AES-128、AES-192、AES-256 加密算法
 
-    public static void main(String[] args) {
-        JSONObject json = new JSONObject();
-        json.put("account", "gly");
-        json.put("password", "cxtd123456");
-        String encryptData = encrypt(json.toJSONString(), AESConst.KEY);
-        System.out.println(encryptData);
+    /**
+     * AES 加密，使用默认 Key
+     * @param plainText
+     */
+    public static String encrypt(String plainText) {
+        return encrypt(plainText, KEY);
     }
 
+    /**
+     * AES 解密，使用默认 Key
+     * @param encryptText
+     */
+    public static String decrypt(String encryptText) {
+        return decrypt(encryptText, KEY);
+    }
+
+    /**
+     * AES 加密，使用自定义 Key
+     * @param plainText
+     * @param key
+     */
     public static String encrypt(String plainText, String key) {
         try {
             SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), "AES");
@@ -36,6 +48,11 @@ public class AESKit {
         }
     }
 
+    /**
+     * AES 解密，使用自定义 Key
+     * @param encryptText
+     * @param key
+     */
     public static String decrypt(String encryptText, String key) {
         try {
             SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), "AES");

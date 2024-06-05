@@ -25,7 +25,7 @@ public class ControllerResponseAdvice implements ResponseBodyAdvice<Object> {
     }
 
     @Override
-    public JSONObject beforeBodyWrite(Object data, MethodParameter returnType, MediaType mediaType, Class<? extends HttpMessageConverter<?>> clazz, ServerHttpRequest request, ServerHttpResponse response) {
+    public Object beforeBodyWrite(Object data, MethodParameter returnType, MediaType mediaType, Class<? extends HttpMessageConverter<?>> clazz, ServerHttpRequest request, ServerHttpResponse response) {
         return EncryptDataKit.encryptResponseData(data);
     }
 
