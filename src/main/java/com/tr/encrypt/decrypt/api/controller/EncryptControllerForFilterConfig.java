@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Api(tags = "加密 Api（FilterConfig）")
 @RestController
-public class EncryptController {
+public class EncryptControllerForFilterConfig {
 
     @GetMapping("/encrypt/test")
     public String test() {

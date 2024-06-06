@@ -5,7 +5,6 @@ import com.tr.encrypt.decrypt.api.aspect.annotation.EncryptApi;
 import com.tr.encrypt.decrypt.api.aspect.annotation.EncryptResponse;
 import com.tr.encrypt.decrypt.api.controller.data.User;
 import com.tr.encrypt.decrypt.api.kit.AESKit;
-import com.tr.encrypt.decrypt.api.kit.EncryptDataKit;
 import com.tr.encrypt.decrypt.api.kit.MD5Kit;
 import com.tr.encrypt.decrypt.api.kit.UuidKit;
 import io.swagger.annotations.Api;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @Author: TR
  */
-@Api(tags = "测试 Api（ControllerRequestAdvice）")
+@Api(tags = "加密 Api（ControllerRequestAdvice）")
 @RestController
-public class TestController {
+public class EncryptControllerForControllerRequestAdvice {
 
     @GetMapping("/test")
     public String test() {
@@ -30,9 +30,33 @@ public class TestController {
     }
 
     @EncryptResponse
-    @GetMapping("/hi/{name}")
-    public String hi(@PathVariable String name) {
+    @GetMapping("/return/String/{name}")
+    public String returnString(@PathVariable String name) {
         return "Hi, " + name;
+    }
+
+    @EncryptResponse
+    @GetMapping("/return/Integer/{num}")
+    public Integer returnIntegerPathVariable(@PathVariable Integer num) {
+        return num;
+    }
+
+    @EncryptResponse
+    @GetMapping("/return/Integer")
+    public Integer returnIntegerRequestParam(@RequestParam Integer num) {
+        return num;
+    }
+
+    @EncryptResponse
+    @GetMapping("/return/int/{num}")
+    public int returnIntPathVariable(@PathVariable int num) {
+        return num;
+    }
+
+    @EncryptResponse
+    @GetMapping("/return/int")
+    public int returnIntRequestParam(@RequestParam int num) {
+        return num;
     }
 
     @EncryptResponse
@@ -74,11 +98,6 @@ public class TestController {
 
         encryptJsonParam.put("requestParam", requestParam.toString());
         return encryptJsonParam;
-    }
-
-    @PostMapping("/decrypt/ResponseData")
-    public String decryptResponseData(@RequestBody JSONObject jsonObject) {
-        return EncryptDataKit.decryptResponseData(jsonObject);
     }
 
 }
