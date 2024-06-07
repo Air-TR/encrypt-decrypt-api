@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 加密请求过滤器（将请求解密后再进入 controller）
+ *  Ps：响应数据是否加密在 ControllerResponseAdvice 控制
  *
  * @Author: TR
  */

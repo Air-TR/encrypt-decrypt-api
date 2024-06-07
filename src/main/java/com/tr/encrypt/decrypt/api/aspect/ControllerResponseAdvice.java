@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
+ * 控制响应数据是否加密
+ *
  * @Author: TR
  */
 @RestControllerAdvice
