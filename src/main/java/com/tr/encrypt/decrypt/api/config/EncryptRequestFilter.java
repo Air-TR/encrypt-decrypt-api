@@ -129,15 +129,15 @@ public class EncryptRequestFilter implements Filter {
          * 防重放攻击（时间戳）校验
          *  与服务器时间相差超过 5 分钟视为重放攻击（防止攻击者绕过 UUID 重放攻击检验，即等待 Redis 保存的 request_sign 过期后再用发送重复请求）
          */
-//        if (Math.abs(new Date().getTime() - Long.valueOf(signs[0])) / 1000 > 300) { // 300 秒（5分钟）
-//            throw new BusinessException("超时重放攻击");
-//        }
-//        // 防重放攻击（UUID）校验，10 分钟内相同签名视为重放攻击
-//        if (stringRedisTemplate.hasKey(RedisKey.REQUEST_SIGN + signs[1])) {
-//            throw new BusinessException("签名重放攻击");
-//        }
-//        // request_sign（请求签名）在 Redis 保存 10 分钟
-//        stringRedisTemplate.opsForValue().set(RedisKey.REQUEST_SIGN + signs[1], signs[1], 10, TimeUnit.MINUTES);
+        if (Math.abs(new Date().getTime() - Long.valueOf(signs[0])) / 1000 > 300) { // 300 秒（5分钟）
+            throw new BusinessException("超时重放攻击");
+        }
+        // 防重放攻击（UUID）校验，10 分钟内相同签名视为重放攻击
+        if (stringRedisTemplate.hasKey(RedisKey.REQUEST_SIGN + signs[1])) {
+            throw new BusinessException("签名重放攻击");
+        }
+        // request_sign（请求签名）在 Redis 保存 10 分钟
+        stringRedisTemplate.opsForValue().set(RedisKey.REQUEST_SIGN + signs[1], signs[1], 10, TimeUnit.MINUTES);
 
         // 返回解密后的原始参数
         return AESKit.decrypt(encrypts[0]);
