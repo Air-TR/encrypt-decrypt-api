@@ -1,4 +1,4 @@
-package com.tr.encrypt.decrypt.api.config;
+package com.tr.encrypt.decrypt.api;
 
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,5 @@
 server:
   port: 8088
 
-
+ex-path:
+  encrypt-request: /createEncryptParam/**,/swagger-resources/**,/swagger-ui.html,/v2/api-docs,/webjars/**

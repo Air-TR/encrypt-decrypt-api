@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.tr.encrypt.decrypt.api.constant.RedisKey;
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 import com.tr.encrypt.decrypt.api.kit.AESKit;
+import com.tr.encrypt.decrypt.api.kit.HttpKit;
 import com.tr.encrypt.decrypt.api.kit.MD5Kit;
 import com.tr.encrypt.decrypt.api.kit.StringKit;
 import lombok.extern.slf4j.Slf4j;
@@ -15,66 +16,92 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 加密请求过滤器（将请求解密后再进入 controller）
+ *
  * @Author: TR
  */
 @Slf4j
-public class EncryptFilter implements Filter {
+public class EncryptRequestFilter implements Filter {
+
+    private List<String> exPaths;
 
     private StringRedisTemplate stringRedisTemplate;
 
-    public EncryptFilter(StringRedisTemplate stringRedisTemplate) {
+    public EncryptRequestFilter(StringRedisTemplate stringRedisTemplate, List<String> exPaths) {
         this.stringRedisTemplate = stringRedisTemplate;
+        this.exPaths = exPaths;
     }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
             throws IOException, ServletException {
 
-        HttpServletRequest request = (HttpServletRequest) servletRequest;
-
-        // 处理 QueryString
-        String queryString = request.getQueryString(); // 获取查询字符串（?后的内容）
-        if (StringKit.isNotBlank(queryString)) {
-            // 验证加密请求合法性，返回解密后的参数
-            String decryptParam = validateAndDecrypt(queryString);
-            // 原始参数转为 Json
-            JSONObject decryptParams = JSONObject.parseObject(decryptParam);
-
-            // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
-            AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParams);
-
-            // 继续处理请求链
-            filterChain.doFilter(airRequest, servletResponse);
+        // 只对 HttpServletRequest 进行过滤
+        if (!(servletRequest instanceof HttpServletRequest) || exPaths.contains("/**")) {
+            filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
 
-        // 处理 RequestBody
-        String requestBody = readRequestBody(request);
-        if (StringKit.isNotBlank(requestBody)) {
-            // 解密请求体（这里假设请求体是加密的）
-            JSONObject requestBodyJson = JSONObject.parseObject(requestBody);
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
 
-            String requestParam = requestBodyJson.getString("requestParam");
-            if (StringKit.isBlank(requestParam)) {
-                throw new BusinessException("非法参数");
+        // 放行 exPath 匹配的 uri
+        for (String exPath : exPaths) {
+            if (request.getRequestURI().equals(exPath) || (exPath.endsWith("/**") && (request.getRequestURI().startsWith(exPath.replace("/**", "/")) || request.getRequestURI().equals(exPath.replace("/**", ""))))) {
+                filterChain.doFilter(servletRequest, servletResponse);
+                return;
+            }
+        }
+
+        try {
+            // 处理 QueryString
+            String queryString = request.getQueryString(); // 获取查询字符串（?后的内容）
+            if (StringKit.isNotBlank(queryString)) {
+                // 验证加密请求合法性，返回解密后的参数
+                String decryptParam = validateAndDecrypt(queryString);
+                // 原始参数转为 Json
+                JSONObject decryptParams = JSONObject.parseObject(decryptParam);
+
+                // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
+                AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParams);
+
+                // 继续处理请求链
+                filterChain.doFilter(airRequest, servletResponse);
+                return;
             }
 
-            // 验证加密请求合法性，返回解密后的参数
-            String decryptParam = validateAndDecrypt(queryString);
+            // 处理 RequestBody
+            String requestBody = readRequestBody(request);
+            if (StringKit.isNotBlank(requestBody)) {
+                // 解密请求体（这里假设请求体是加密的）
+                JSONObject requestBodyJson = JSONObject.parseObject(requestBody);
 
-            // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
-            AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParam.getBytes());
+                String requestParam = requestBodyJson.getString("requestParam");
+                if (StringKit.isBlank(requestParam)) {
+                    throw new BusinessException("非法参数");
+                }
 
-            // 继续过滤器链
-            filterChain.doFilter(airRequest, servletResponse);
+                // 验证加密请求合法性，返回解密后的参数
+                String decryptParam = validateAndDecrypt(requestParam);
+
+                // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
+                AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParam.getBytes());
+
+                // 继续过滤器链
+                filterChain.doFilter(airRequest, servletResponse);
+                return;
+            }
+        } catch (Exception e) {
+            HttpKit.setResponse((HttpServletResponse) servletResponse, 8088, e.getMessage()); // 8088 —— 请求解密异常返回码（自定义，非官方）
             return;
         }
 

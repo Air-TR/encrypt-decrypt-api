@@ -7,7 +7,6 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -56,13 +55,17 @@ public class AirHttpServletRequestWrapper extends HttpServletRequestWrapper {
         return Collections.enumeration(paramNames);
     }
 
+    /**
+     * 此方法必须
+     *  没有这个方法，@RequestBody Api 报错：I/O error while reading input message; nested exception is java.io.IOException: Stream closed
+     */
     @Override
-    public ServletInputStream getInputStream() throws IOException {
+    public ServletInputStream getInputStream() {
         return new ServletInputStream() {
             private final ByteArrayInputStream bais = new ByteArrayInputStream(body);
 
             @Override
-            public int read() throws IOException {
+            public int read() {
                 return bais.read();
             }
 
@@ -78,7 +81,7 @@ public class AirHttpServletRequestWrapper extends HttpServletRequestWrapper {
 
             @Override
             public void setReadListener(ReadListener readListener) {
-                // 不需要处理，因为我们不是非阻塞读取
+                // 不需要处理，因为不是非阻塞读取
             }
         };
     }

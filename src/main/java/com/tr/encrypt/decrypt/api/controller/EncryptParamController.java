@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * @Author: TR
  */
-@Api(tags = "加密请求参数")
+@Api(tags = "创建加密参数")
 @RestController
 public class EncryptParamController {
 
     @NoEncryptResponse
-    @PostMapping("/create/encryptRequestParam")
+    @PostMapping("/createEncryptParam/RequestParam")
     public String createEncryptQueryParam(@RequestParam String param) {
         // 原始参数加密
         String encryptParam = AESKit.encrypt(param);
@@ -35,7 +35,7 @@ public class EncryptParamController {
     }
 
     @NoEncryptResponse
-    @PostMapping("/create/encryptRequestBody")
+    @PostMapping("/createEncryptParam/RequestBody")
     public JSONObject createEncryptRequestBody(@RequestBody JSONObject requestBody) {
         // 原始参数加密
         String encryptParam = AESKit.encrypt(requestBody.toJSONString());
