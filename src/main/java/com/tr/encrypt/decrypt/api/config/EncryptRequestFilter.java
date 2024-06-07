@@ -66,8 +66,10 @@ public class EncryptRequestFilter implements Filter {
             // 处理 QueryString
             String queryString = request.getQueryString(); // 获取查询字符串（?后的内容）
             if (StringKit.isNotBlank(queryString)) {
+
                 // 验证加密请求合法性，返回解密后的参数
                 String decryptParam = validateAndDecrypt(queryString);
+
                 // 原始参数转为 Json
                 JSONObject decryptParams = JSONObject.parseObject(decryptParam);
 
@@ -82,6 +84,7 @@ public class EncryptRequestFilter implements Filter {
             // 处理 RequestBody
             String requestBody = readRequestBody(request);
             if (StringKit.isNotBlank(requestBody)) {
+
                 // 解密请求体（这里假设请求体是加密的）
                 JSONObject requestBodyJson = JSONObject.parseObject(requestBody);
 
