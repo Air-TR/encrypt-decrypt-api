@@ -17,9 +17,9 @@ public class EncryptDataKit {
             }
             JSONObject json = new JSONObject();
             String jsonString = JSON.toJSONString(data);
-            String encryptData = AESKit.encrypt(jsonString);
-            json.put("encryptData", encryptData);
-            json.put("digest", MD5Kit.encrypt(encryptData));
+            String responseData = AESKit.encrypt(jsonString);
+            json.put("responseData", responseData);
+            json.put("digest", MD5Kit.encrypt(responseData));
             return json;
         } catch (Exception e) {
             throw new BusinessException("Response 加密错误");
@@ -28,7 +28,7 @@ public class EncryptDataKit {
 
     public static String decryptResponseData(JSONObject jsonObject) {
         try {
-            String encryptData = jsonObject.getString("encryptData");
+            String encryptData = jsonObject.getString("responseData");
             String digest = jsonObject.getString("digest");
             if (StringKit.isBlank(digest) || !digest.equals(MD5Kit.encrypt(encryptData))) {
                 throw new BusinessException("非法响应数据！");

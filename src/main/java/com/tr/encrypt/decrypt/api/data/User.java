@@ -1,4 +1,4 @@
-package com.tr.encrypt.decrypt.api.controller.data;
+package com.tr.encrypt.decrypt.api.data;
 
 import lombok.Data;
 
@@ -9,6 +9,6 @@ import lombok.Data;
 public class User {
 
     private String name;
-    private int age;
+    private Integer age;
 
 }

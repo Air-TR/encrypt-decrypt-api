@@ -1,4 +1,4 @@
-package com.tr.encrypt.decrypt.api.config;
+package com.tr.encrypt.decrypt.api.config.amar;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
@@ -8,13 +8,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-public class AirResponseWrapper extends HttpServletResponseWrapper {
+public class AmarResponseWrapper extends HttpServletResponseWrapper {
 
     private ByteArrayOutputStream buffer;
     private ServletOutputStream out;
     private PrintWriter writer;
 
-    public AirResponseWrapper(HttpServletResponse httpServletResponse) {
+    public AmarResponseWrapper(HttpServletResponse httpServletResponse) {
         super(httpServletResponse);
         buffer = new ByteArrayOutputStream();
         out = new WrapperOutputStream(buffer);

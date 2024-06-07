@@ -1,11 +1,13 @@
 package com.tr.encrypt.decrypt.api.config;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.tr.encrypt.decrypt.api.constant.RedisKey;
+import com.tr.encrypt.decrypt.api.exception.BusinessException;
+import com.tr.encrypt.decrypt.api.kit.AESKit;
 import com.tr.encrypt.decrypt.api.kit.MD5Kit;
 import com.tr.encrypt.decrypt.api.kit.StringKit;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -13,14 +15,12 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URLDecoder;
-import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
-import java.util.stream.Collectors;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: TR
@@ -28,138 +28,113 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EncryptFilter implements Filter {
 
-//    @Override
-//    public void init(FilterConfig filterConfig) throws ServletException {
-//        // 过滤器初始化
-//    }
+    private StringRedisTemplate stringRedisTemplate;
 
-    @SneakyThrows
+    public EncryptFilter(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
+    }
+
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
+            throws IOException, ServletException {
 
-        AirRequestWrapper request = new AirRequestWrapper((HttpServletRequest) servletRequest);
-//        AirResponseWrapper response = new AirResponseWrapper((HttpServletResponse) servletResponse);
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
 
-//        //不需要判断 GET 还是 POST，直接拿出数据解密，然后放回去
-//        String encryptSign = request.getHeader("encryptSign");
-//        // 解密 destinyKey
-//        log.info("获取到签名密文为：" + encryptSign);
-//        String signJsonStr = AESKit.decrypt(encryptSign, "AesKey1234567890");
-//        log.info("获取到签名明文为：" + signJsonStr);
-//        // 请求头 destinyKey 的值判空
-//        if (StringKit.isBlank(signJsonStr)) {
-//            setResponse(response, "签名不合法");
-//            return;
+        // 处理 QueryString
+        String queryString = request.getQueryString(); // 获取查询字符串（?后的内容）
+        if (StringKit.isNotBlank(queryString)) {
+            // 验证加密请求合法性，返回解密后的参数
+            String decryptParam = validateAndDecrypt(queryString);
+            // 原始参数转为 Json
+            JSONObject decryptParams = JSONObject.parseObject(decryptParam);
+
+            // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
+            AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParams);
+
+            // 继续处理请求链
+            filterChain.doFilter(airRequest, servletResponse);
+            return;
+        }
+
+        // 处理 RequestBody
+        String requestBody = readRequestBody(request);
+        if (StringKit.isNotBlank(requestBody)) {
+            // 解密请求体（这里假设请求体是加密的）
+            JSONObject requestBodyJson = JSONObject.parseObject(requestBody);
+
+            String requestParam = requestBodyJson.getString("requestParam");
+            if (StringKit.isBlank(requestParam)) {
+                throw new BusinessException("非法参数");
+            }
+
+            // 验证加密请求合法性，返回解密后的参数
+            String decryptParam = validateAndDecrypt(queryString);
+
+            // 创建一个新的 HttpServletRequestWrapper，其中请求体是解密后的内容
+            AirHttpServletRequestWrapper airRequest = new AirHttpServletRequestWrapper(request, decryptParam.getBytes());
+
+            // 继续过滤器链
+            filterChain.doFilter(airRequest, servletResponse);
+            return;
+        }
+
+        filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    private String validateAndDecrypt(String encryptParam) {
+        String[] encrypts = encryptParam.split("\\.");
+
+        /**
+         * 校验参数是否合法
+         *  (1) encrypts 必须是 3 位
+         *  (2) MD5 校验参数是否被篡改
+         */
+        if (encrypts.length != 3 || !encrypts[1].equals(MD5Kit.encrypt(encrypts[0]))) {
+            throw new BusinessException("非法参数");
+        }
+
+        // 验证签名（用于重放攻击校验）
+        String[] signs = AESKit.decrypt(encrypts[2]).split("\\.");
+        if (signs.length != 2) {
+            throw new BusinessException("非法参数");
+        }
+        /**
+         * 防重放攻击（时间戳）校验
+         *  与服务器时间相差超过 5 分钟视为重放攻击（防止攻击者绕过 UUID 重放攻击检验，即等待 Redis 保存的 request_sign 过期后再用发送重复请求）
+         */
+//        if (Math.abs(new Date().getTime() - Long.valueOf(signs[0])) / 1000 > 300) { // 300 秒（5分钟）
+//            throw new BusinessException("超时重放攻击");
 //        }
+//        // 防重放攻击（UUID）校验，10 分钟内相同签名视为重放攻击
+//        if (stringRedisTemplate.hasKey(RedisKey.REQUEST_SIGN + signs[1])) {
+//            throw new BusinessException("签名重放攻击");
+//        }
+//        // request_sign（请求签名）在 Redis 保存 10 分钟
+//        stringRedisTemplate.opsForValue().set(RedisKey.REQUEST_SIGN + signs[1], signs[1], 10, TimeUnit.MINUTES);
 
-//        JSONObject signJson = JSON.parseObject(signJsonStr);
-        String request_uri = URLDecoder.decode(request.getRequestURI().substring(request.getContextPath().length()),request.getCharacterEncoding());
-//        request.setRequestURI("/encrypt/list");
-
-        // get 请求
-        String encryptParam = request.getParameter("encryptParam");
-        if (StringKit.isNotBlank(encryptParam)) {
-            log.info("请求正文密文：" + encryptParam);
-            // 这里直接将已经获取到的加密报文移除掉
-            request.getParameterMap().remove("encryptParam");
-
-//            if (!checkDigest(signJson, encryptParam, request_uri)) {
-//                setResponse(response, "摘要不合法");
-//                return;
-//            }
-
-            // 解密
-//            String param = AESKit.decrypt(encryptParam, "AesKey1234567890");
-//            log.info("请求正文明文：" + param);
-            JSONObject jsonParam = JSONObject.parseObject(encryptParam);
-            // 把解密后的数据重新放入 request
-            fillParams(request, jsonParam);
-        }
-
-        // post 请求
-        String jsonStr = getPostParams(request);
-        if (StringKit.isNotBlank(jsonStr)) {
-//            log.info("请求正文密文：" + jsonStr);
-//            JSONObject json = JSONObject.parseObject(jsonStr);
-//
-////            if (!checkDigest(signJson, encryptData, request_uri)) {
-////                setResponse(response, "摘要不合法");
-////                return;
-////            }
-//
-//            String param = AESKit.decrypt(json.getString("json"), AESConst.KEY);
-//            log.info("请求正文明文：" + param);
-//            request.setRequestBody(param.getBytes(StandardCharsets.UTF_8));
-        }
-
-        filterChain.doFilter(request, servletResponse);
-
-        // 需要加密返回响应数据使用 @EncryptResponse
-
-//        String responseBody = new String(response.getContent(), StandardCharsets.UTF_8);
-////        log.info("响应正文明文：" + responseBody);
-////        // 先给数据加密
-////        if (StringKit.isNotBlank(responseBody) && HttpServletResponse.SC_OK == response.getStatus()) {
-////            responseBody = AESKit.encrypt(responseBody, AESConst.KEY);
-////            log.info("响应正文密文：" + responseBody);
-////        }
-//        // 真正传输
-//        OutputStream out = response.getResponse().getOutputStream();
-//        out.write(responseBody.getBytes());
-//        out.close();
-
+        // 返回解密后的原始参数
+        return AESKit.decrypt(encrypts[0]);
     }
 
-    @Override
-    public void destroy() {
-        // 过滤器销毁
-    }
-
-    /**
-     * 获取 post/put 请求参数
-     */
-    public static String getPostParams(AirRequestWrapper request) throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(request.getInputStream()));
-        String line;
-        StringBuffer stringBuffer = new StringBuffer();
-        while ((line = bufferedReader.readLine()) != null) {
-            stringBuffer.append(line);
-        }
-        bufferedReader.close();
-        return stringBuffer.toString();
-    }
-
-    public static void fillParams(AirRequestWrapper request, JSONObject json) {
-        Iterator<String> it = json.keySet().iterator();
-        while (it.hasNext()) {
-            String key = it.next();
-            Object paramStr = json.get(key);
-            // 匹配到数组
-            if(paramStr instanceof JSONArray){
-                String[] params = new String[((JSONArray) paramStr).size()];
-                // 不会传两种数据类型，因此拿第一个数据判断数据类型
-                ((JSONArray) paramStr).stream().map(x -> x + "").collect(Collectors.toList()).toArray(params);
-                request.getParameterMap().put(key, params);
-            }else {
-                request.getParameterMap().put(key, new String[]{json.getString(key)});
+    private String readRequestBody(HttpServletRequest request) throws IOException {
+        StringBuilder stringBuilder = new StringBuilder();
+        BufferedReader bufferedReader = null;
+        try {
+            InputStream inputStream = request.getInputStream();
+            if (inputStream != null) {
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                char[] charBuffer = new char[128];
+                int bytesRead = -1;
+                while ((bytesRead = bufferedReader.read(charBuffer)) > 0) {
+                    stringBuilder.append(charBuffer, 0, bytesRead);
+                }
+            }
+        } finally {
+            if (bufferedReader != null) {
+                bufferedReader.close();
             }
         }
-    }
-
-    /**
-     * 校验摘要 digest
-     */
-    public static boolean checkDigest(JSONObject json, String encryptData, String requestUri) throws NoSuchAlgorithmException {
-        // 计算摘要，连带 uri 一起计算
-        String digest = MD5Kit.encrypt( requestUri + encryptData);
-        return digest.equals(json.getString("digest"));
-    }
-
-    public static void setResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("utf-8");
-        response.getWriter().print(message);
+        return stringBuilder.toString();
     }
 
 }

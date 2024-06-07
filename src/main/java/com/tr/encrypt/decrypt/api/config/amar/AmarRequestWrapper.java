@@ -1,4 +1,4 @@
-package com.tr.encrypt.decrypt.api.config;
+package com.tr.encrypt.decrypt.api.config.amar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public class AirRequestWrapper extends HttpServletRequestWrapper {
+public class AmarRequestWrapper extends HttpServletRequestWrapper {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -30,7 +30,7 @@ public class AirRequestWrapper extends HttpServletRequestWrapper {
     private String servletPath;
     private String requestURI;
 
-    public AirRequestWrapper(HttpServletRequest request) {
+    public AmarRequestWrapper(HttpServletRequest request) {
         super(request);
         try {
             requestBody = StreamUtils.copyToByteArray(request.getInputStream());

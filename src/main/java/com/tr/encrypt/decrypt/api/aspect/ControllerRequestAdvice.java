@@ -7,6 +7,7 @@ import com.tr.encrypt.decrypt.api.constant.RedisKey;
 import com.tr.encrypt.decrypt.api.exception.BusinessException;
 import com.tr.encrypt.decrypt.api.kit.AESKit;
 import com.tr.encrypt.decrypt.api.kit.MD5Kit;
+import com.tr.encrypt.decrypt.api.kit.StringKit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -25,6 +26,8 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 待解决：该配置只拦截参数被 @RequestBody 定义的请求，否则不拦截
+ *
  * @Author: TR
  */
 @RestControllerAdvice
@@ -48,6 +51,10 @@ public class ControllerRequestAdvice implements RequestBodyAdvice {
         JSONObject json = JSONObject.parseObject(jsonStr);
 
         String requestParam = json.getString("requestParam");
+        if (StringKit.isBlank(requestParam)) {
+            throw new BusinessException("非法参数");
+        }
+
         String[] encrypts = requestParam.split("\\.");
 
         /**
