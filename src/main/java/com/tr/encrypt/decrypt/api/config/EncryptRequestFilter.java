@@ -105,7 +105,7 @@ public class EncryptRequestFilter implements Filter {
                 return;
             }
         } catch (Exception e) {
-            HttpKit.setResponse((HttpServletResponse) servletResponse, 8088, e.getMessage()); // 8088 —— 请求解密异常返回码（自定义，非官方）
+            HttpKit.setResponse((HttpServletResponse) servletResponse, 8088, e.getMessage()); // 8088 —— 请求解密异常返回码（自定义）
             return;
         }
 
